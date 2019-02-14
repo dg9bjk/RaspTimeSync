@@ -17,7 +17,6 @@
 #include "gps.c"
 #endif
 
-#include <sys/timex.h>
 
 // Hauptfunktion
 int main(void)
@@ -36,11 +35,6 @@ int main(void)
         time_t set_of_time_dcf;		// Zeitstempel des DCF77 Empfängers
         time_t set_of_time_gps;		// Zeitstempel des GPS Empfängers
         struct tm timeset;      // Zum Erstellen der Epoch-Zeiten für Systemzeitkorrektur
-
-        struct timex timebuf;
-        int timeretur;
-        int dl = 0;
-        time_t temptime;
 
         int dcfinitstatus;	// DCF 77 aktiv (= 1)
         int dcfstatus;		// DCF77 gültig =1
@@ -204,7 +198,7 @@ int main(void)
                         funkreturn=time_set_once(akttime,set_of_time_dcf,set_of_time_gps,&GPSData,&DCFData,dcfstatus,gpsstatus);
                         if(funkreturn < 0)
                                 PRGabbruch = 0;	// Ende des Programmes wegen Root-Rechte
-                        if(funkreturn >= 0)
+                        if(funkreturn > 0)
                         {
                                 time(&akttime);
                                 baktime = akttime;
@@ -227,27 +221,10 @@ int main(void)
                 delay(50);
 #endif
 
-// samfte Zeitkorrektur
+                // langsame Zeitkorrektur
                 if(update)
                 {
-                        timeretur=adjtimex(&timebuf);
-
-                        printf("\nAdjtimex: %d Status %d\n",dl,timeretur);
-                        printf("Mode: %d\n",timebuf.modes);
-                        printf("offset: %ld\n",timebuf.offset);
-                        printf("frequency: %ld\n",timebuf.freq);
-                        printf("maxerror: %ld\n",timebuf.maxerror);
-                        printf("esterror: %ld\n",timebuf.esterror);
-                        printf("status: %d\n",timebuf.status);
-                        printf("PLL: %ld\n",timebuf.constant);
-                        printf("precicion: %ld\n",timebuf.precision);
-                        printf("tolerance: %ld\n",timebuf.tolerance);
-                        printf("tick: %ld\n",timebuf.tick);
-                        printf("timeval: %ld , %ld\n",timebuf.time.tv_sec,timebuf.time.tv_usec);
-                        temptime=timebuf.time.tv_sec;
-                        printf("Zeit System: %s",ctime(&temptime));
-                        printf("Zeit DCF: %s",ctime(&set_of_time_dcf));
-                        printf("Zeit GPS: %s",ctime(&set_of_time_gps));
+                        funkreturn=time_set_cyclic(set_of_time_dcf,set_of_time_gps);
                 }
 
 // Aufräumen nach dem Durchlauf
@@ -266,3 +243,4 @@ int main(void)
 
         return(-1);
 }
+
