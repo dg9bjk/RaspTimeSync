@@ -1,5 +1,5 @@
 #define MaxTimeDiff     10      // Maximale Abweichtung der Systemzeit
-#define Diff            1       // Maximale Abweichtung zwischen DCF77 und GPS-Zeiten
+#define Diff            2       // Maximale Abweichtung zwischen DCF77 und GPS-Zeiten
 #define DelaySetTime    300     // Verzögerung der Zeitkorrektur in Sekunden, bis alle Zeiten erfasst sind - Minimum 5 Minuten
 
 #define dcf77			// DCF77 Empfänger installiert

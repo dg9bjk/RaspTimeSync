@@ -161,4 +161,3 @@ int time_set_cyclic(time_t set_of_time_dcf,time_t set_of_time_gps)
 
     return(0);
 }
-
