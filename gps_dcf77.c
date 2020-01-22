@@ -611,7 +611,8 @@ int main(void)
 	struct timex timebuf;
 	int timeretur;
 	int dl = 0;
-	
+	time_t temptime;
+		
 // Fehler, wenn keine WiringPi-Lib vorhanden ist
 	if(wiringPiSetup() == -1)
 	{
@@ -823,27 +824,27 @@ int main(void)
 		}
 		
 // Setzen der Zeitinformation in das System
+		timeset.tm_sec   = GPSData.Sekunde;
+		timeset.tm_min   = GPSData.Minute;
+		timeset.tm_hour  = GPSData.Stunde;
+		timeset.tm_mday  = GPSData.Tag;
+		timeset.tm_mon   = GPSData.Monat-1;
+		timeset.tm_year  = (GPSData.Jahr+2000)-1900;
+		timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
+		set_of_time_gps = mktime(&timeset);
+
+		timeset.tm_sec = DCFSekunde;
+		timeset.tm_min = DCFData.Minute;
+		timeset.tm_hour = DCFData.Stunde;
+		timeset.tm_mday = DCFData.Tag;
+		timeset.tm_mon = (DCFData.Monat-1);	// Monat ist von 0 - 11 definiert.
+		timeset.tm_year = (DCFData.Jahr+2000)-1900;
+		timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
+		set_of_time = mktime(&timeset);
+		set_of_time_dcf = set_of_time - (DCFData.ZeitZone * 3600); // Zeitzonen Rückrechnung MEZ/MESZ -> UTC
+
 		if((update) & (akttime > startzeit + DelaySetTime))
 		{
-			timeset.tm_sec   = GPSData.Sekunde;
-			timeset.tm_min   = GPSData.Minute;
-			timeset.tm_hour  = GPSData.Stunde;
-			timeset.tm_mday  = GPSData.Tag;
-			timeset.tm_mon   = GPSData.Monat-1;
-			timeset.tm_year  = (GPSData.Jahr+2000)-1900;
-			timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
-			set_of_time_gps = mktime(&timeset);
-
-			timeset.tm_sec = DCFSekunde;
-			timeset.tm_min = DCFData.Minute;
-			timeset.tm_hour = DCFData.Stunde;
-			timeset.tm_mday = DCFData.Tag;
-			timeset.tm_mon = (DCFData.Monat-1);	// Monat ist von 0 - 11 definiert.
-			timeset.tm_year = (DCFData.Jahr+2000)-1900;
-			timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
-			set_of_time = mktime(&timeset);
-			set_of_time_dcf = set_of_time - (DCFData.ZeitZone * 3600); // Zeitzonen Rückrechnung MEZ/MESZ -> UTC
-
 			if(debug==4)
 			{
 				printf("Aktuelles System: %ld\n",akttime);
@@ -965,8 +966,12 @@ int main(void)
 			printf("PLL: %ld\n",timebuf.constant);
 			printf("precicion: %ld\n",timebuf.precision);
 			printf("tolerance: %ld\n",timebuf.tolerance);
-			printf("timeval: %ld , %ld\n",timebuf.time.tv_sec,timebuf.time.tv_usec);
 			printf("tick: %ld\n",timebuf.tick);
+			printf("timeval: %ld , %ld\n",timebuf.time.tv_sec,timebuf.time.tv_usec);
+			temptime=timebuf.time.tv_sec;
+			printf("Zeit System: %s",ctime(&temptime));
+			printf("Zeit DCF: %s",ctime(&set_of_time_dcf));
+			printf("Zeit GPS: %s",ctime(&set_of_time_gps));
 		}
 		
 // Aufräumen nach dem Durchlauf
