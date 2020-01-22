@@ -73,12 +73,12 @@ int main(void)
 
 #ifdef dcf77
 // DCF77 Initialisierung
-        dcfinitstatus = dcf77_init(DCFData)
+        dcfinitstatus = dcf77_init(&DCFData)
 #endif
 
 #ifdef gps
 // GPS Initialisierung
-        gpsinitstatus = gps_init(&fdserial,gpschararray);
+        gpsinitstatus = gps_init(&fdserial,gpschararray,&GPSData);
 #endif
 
 //Hauptprogramm
@@ -96,7 +96,7 @@ int main(void)
 
 //DCF77 Empfang
         if(dcfinitstatus > 0)
-                 dcfstatus = dcf77_run(&GPSData);
+                 dcfstatus = dcf77_run(&DCFData);
 
 // GPSZeit lesen
         if((gpsinitstatus > 0)
@@ -147,7 +147,7 @@ int main(void)
                                 printf("Empfangen DCF: %ld \n",set_of_time_dcf);
                         }
 
-                        if((abs(akttime - set_of_time_dcf) > MaxTimeDiff) | (abs(akttime - set_of_tim
+                        if((abs(akttime - set_of_time_dcf) > MaxTimeDiff) | (abs(akttime - set_of_time_gps) > MaxTimeDiff))
                         {
                                 if((gpsstatus) & (dcfstatus))
                                 {
@@ -163,12 +163,12 @@ int main(void)
                                                 }
                                                 else
                                                 {
-                                                        printf("\n Fehler: Zeitdifferenz zwischen bei
+                                                        printf("\n Fehler: Zeitdifferenz zwischen bei\n");
                                                 }
                                         }
                                         else if((GPSData.Status > 0) & (DCFData.Status > 0))    // We
                                         {
-                                                printf("\n Fehler: Beide Quellen melden Einschränkung
+                                                printf("\n Fehler: Beide Quellen melden Einschränkung\n");
                                                 temptime1=set_of_time_dcf;
                                                 temptime2=set_of_time_gps;
                                                 if(abs(temptime1-temptime2) < Diff)             // We
@@ -179,26 +179,26 @@ int main(void)
                                                 }
                                                 else
                                                 {
-                                                        printf("\n Fehler: Zeitdifferenz zwischen bei
+                                                        printf("\n Fehler: Zeitdifferenz zwischen bei\n");
                                                 }
                                         }
                                         else if((GPSData.Status == 0) & (DCFData.Status != 0))  // Nu
                                         {
-                                                printf("\n Fehler: DCF77 Signal meldet Einschänkungen
+                                                printf("\n Fehler: DCF77 Signal meldet Einschänkungen\n");
                                                 timerclear(&settime);
                                                 settime.tv_sec=set_of_time_gps;
                                                 timesetreturn = settimeofday(&settime,0);
                                         }
                                         else if((DCFData.Status == 0) & (GPSData.Status != 0))  // Nu
                                         {
-                                                printf("\n Fehler: GPS Signal meldet Einschänkungen!"
+                                                printf("\n Fehler: GPS Signal meldet Einschänkungen!");
                                                 timerclear(&settime);
                                                 settime.tv_sec=set_of_time_dcf;
                                                 timesetreturn = settimeofday(&settime,0);
                                         }
                                         else
                                         {
-                                                printf("\n Fehler: Keine gültige Uhrzeit empfangbar!"
+                                                printf("\n Fehler: Keine gültige Uhrzeit empfangbar!");
                                         }
                                 }
                                 else if((gpsstatus) & (! dcfstatus))    // Nur GPS verfügbar
