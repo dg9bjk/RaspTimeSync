@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/timex.h>
 
 #define BtnPin    0		// GPIO-Zuordnung
 #define LedRot    1
@@ -66,7 +67,7 @@ char Daten[BlockHigh][BlockLength];	// Array der Decoder-Logik
 // 2 = Protokoll rahmen (DCF77 und GPS)
 // 3 = Dekodierte Daten (DCF77 und GPS)
 // 4 = Zeitstring (Epche-Time)
-int debug = 3;
+int debug = 0;
 
 // Interrupt-Routine - Bei jeder Flanke wird diese Funktion aufgerufen
 // In der Funktion wird auf 1 oder 0 geprüft.
@@ -585,7 +586,8 @@ int main(void)
 	int n = 0;		// lokaler Zähler
 	int m = 0;
 	int PRGabbruch = 1;	// Schleife wird beendet, wegen groben Fehler. 0 bei Fehler
-
+	int ntpstart = 0;	// Zum eimaligen starten des NTP-Servers
+	
 	struct tm timeset;	// Zum Erstellen der Epoch-Zeiten für Systemzeitkorrektur
 	unsigned long temptime1;
 	unsigned long temptime2;
@@ -605,6 +607,10 @@ int main(void)
 	int fdserial;		// Dateizeiger zur USB-GPS-Mouse
 	char gpschararray[GPSArray]; 	// RX_buffer GPS
 	int gpsrxcnt = 0;		// Anzahl der RX-Daten
+
+	struct timex timebuf;
+	int timeretur;
+	int dl = 0;
 	
 // Fehler, wenn keine WiringPi-Lib vorhanden ist
 	if(wiringPiSetup() == -1)
@@ -665,6 +671,7 @@ int main(void)
 	baktime = 0;
 	fdserial = -1;
 	PRGabbruch = 1;
+	ntpstart = 0;
 	init = 1;	// Einmaliger Initialisierunglauf
 
 	// DatenArray löschen
@@ -894,8 +901,9 @@ int main(void)
 						timesetreturn = settimeofday(&settime,0);
 					}
 					else
+					{
 						printf("\n Fehler: Keine gültige Uhrzeit empfangbar!");
-					
+					}
 				}
 				else if((gpsstatus) & (! dcfstatus))	// Nur GPS verfügbar
 					if(GPSData.Status == 0)
@@ -914,7 +922,9 @@ int main(void)
 						timesetreturn = settimeofday(&settime,0);
 					}
 				else
+				{
 					printf("\n Fehler: Keine Uhrzeit empfangbar!");
+				}
 
 				if(timesetreturn)
 				{
@@ -933,7 +943,31 @@ int main(void)
 			}
 		}
 
+		if((akttime > startzeit + DelaySetTime)& (! ntpstart))
+		{
+			system("service ntp start &");
+			ntpstart = 1;
+		}
+				
 		delay(3); // Entlastung der CPU
+		
+		if(update)		
+		{
+			timeretur=adjtimex(&timebuf);
+		
+			printf("\nAdjtimex: %d Status %d\n",dl,timeretur);
+			printf("Mode: %d\n",timebuf.modes);
+			printf("offset: %ld\n",timebuf.offset);
+			printf("frequency: %ld\n",timebuf.freq);
+			printf("maxerror: %ld\n",timebuf.maxerror);
+			printf("esterror: %ld\n",timebuf.esterror);
+			printf("status: %d\n",timebuf.status);
+			printf("PLL: %ld\n",timebuf.constant);
+			printf("precicion: %ld\n",timebuf.precision);
+			printf("tolerance: %ld\n",timebuf.tolerance);
+			printf("timeval: %ld , %ld\n",timebuf.time.tv_sec,timebuf.time.tv_usec);
+			printf("tick: %ld\n",timebuf.tick);
+		}
 		
 // Aufräumen nach dem Durchlauf
 		digitalWrite(LedBlu,0);	// LED-Ausschalten, wegen Impulsanzeige	
