@@ -1,4 +1,4 @@
-gcc gps_dcf77.c -lwiringPi
+gcc ntpserver.c -lwiringPi
 mv a.out ntpserver
 gcc ledtest.c -lwiringPi
 mv a.out ledtest

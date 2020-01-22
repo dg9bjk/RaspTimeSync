@@ -1,5 +1,11 @@
 gps_dcf77.c~
 ledtest.c~
+dcf77.c~
+gps.c~
+timesync.c~
+ntpserver.c~
+ntpserver.h~
+make~
 ntpserver
 ledtest
 .gitignore~
