@@ -19,10 +19,10 @@
 int syncbit     = 0;	// Für LED-Steuerung
 int Bitaktuell  = 0;
 int Bit	        = 0;
-int init	= 0;
-int DCFSekunde  = 0;
-int runClockcnt = 0;
-int runArraycnt = 0;
+int dcfInterruptInit;
+int DCFSekunde;
+int runClockcnt;
+int runArraycnt;
 
 double Block[BlockHigh][BlockLength];	// Array der Zeitmessung
 char Daten[BlockHigh][BlockLength];	// Array der Decoder-Logik
@@ -51,15 +51,15 @@ void BtnISR(void)
 	double diff_pause;
 	int n,m;
 	
-	if(init)	// Einmalige Initialisierung
+	if(dcfInterruptInit)	// Einmalige Initialisierung
 	{
 		Clockcnt = 0;	// Schrittzähler initialisierung
 		Arraycnt = 0;	// Historikzähler initialisierung
 		gettimeofday(&start,0);
 		gettimeofday(&stop,0);
 		gettimeofday(&startpause,0);
-		init = 0;	// Init aus
 		DCFSekunde = 0;
+		dcfInterruptInit = 0;	// Init aus
 	}
 
 	if(digitalRead(BtnPin)) // Steigende Flanke
@@ -250,11 +250,13 @@ int dcf77decode(int localClockcnt,int localArraycnt,struct Zeitstempel *data)
 }
 
 //#############################################################################################################  
-int dcf77_init()
+int dcf77_init(struct Zeitstempel DCFData)
 {
-// GPIO-Ports konfigurieren	
+	int m,n;			// Laufvariablen
+
+	// GPIO-Ports konfigurieren	
 	pinMode(BtnPin,INPUT);		// GPIO - Auf Input für DCF-Rx
-	pullUpDnControl(BtnPin,PUD_OFF);	// GPIO ohne Pull-Up/-Down
+	pullUpDnControl(BtnPin,PUD_OFF);// GPIO ohne Pull-Up/-Down
 
 	pinMode(LedRot, OUTPUT);	// LED-Ausgänge
 	pinMode(LedGrn, OUTPUT);
@@ -272,19 +274,42 @@ int dcf77_init()
 		for(n=0;n < BlockLength;n++)
 			Daten[BlockHigh][BlockLength] = 0x0;	// Array der Decoder-Logik
 
+	dcfInterruptInit = 1;
+        runClockcnt = 0;
+        runArraycnt = 0;
+        DCFSekunde  = 0;
+
+        DCFData.Stunde = 0;
+        DCFData.Minute = 0;
+        DCFData.Sekunde = 0;
+        DCFData.Tag = 1;
+        DCFData.Wochentag = -1;
+        DCFData.Monat = 1;
+        DCFData.Jahr = 70;
+        DCFData.Status = -1;
+        DCFData.Schaltsekunde = -1;
+        DCFData.UmschaltungZeitZone = -1;
+        DCFData.Breitengrad = -1;
+        DCFData.Laengengrad = -1;
+        DCFData.AusrichtungB = 'Z';
+        DCFData.AusrichtungL = 'Z';
+        DCFData.ZeitZone = 0;
+	
 // Installieren der Interrupt-Routine
 	if(wiringPiISR(BtnPin, INT_EDGE_BOTH, BtnISR))
 	{
 		printf("setup ISR failed !\n");
-		return(1);
+		return(-1);
 	}
-
+	else
+		return(1);
 }
 
 //#############################################################################################################  
-int dcf77_run()
+int dcf77_run(struct Zeitstempel DCFData)
 {
 // LED Steuerung für DCF77 Empfang 
+	int dcfreturn = 0;
 		if(Bitaktuell)	// Wenn ein Biterkannt wurde
 		{
 			if(Bit)	// 1
@@ -312,24 +337,18 @@ int dcf77_run()
 			if(dcf77decode(runClockcnt,runArraycnt,&DCFData)) // Decodieren der Datenpakte
 			{
 				printf("DCF77 Decoderfehler\n");
-				dcfstatus = 0;
+				dcfreturn = -1;
 			}
 			else
-				dcfstatus = 1;	// Daten sind gültig
-			syncbit=0;				// Bit-Zurücksetzen
-		}
-		if(ledaus)
-		{
-			// LEDs ausschalten
-			digitalWrite(LedBlu,0);	// LED-Ausschalten, wegen Impulsanzeige	
-			digitalWrite(LedRot,0);
-			digitalWrite(LedGrn,0);
+				dcfreturn = 1;	// Daten sind gültig
+			syncbit=0;	
+			return(dcfreturn);	
 		}
 }
 
 //#############################################################################################################  
 // Debuginformation Zusammenfasseung Zeit-Decoder
-int dcf77_debug()
+int dcf77_debug(struct Zeitstempel DCFData)
 {
 	printf("-----------DCF------------\n");
 	printf("Stunde: %d \n",DCFData.Stunde);
@@ -347,6 +366,7 @@ int dcf77_debug()
 	printf("RichtungBreite: %c \n",DCFData.AusrichtungB);
 	printf("RichtungLänge : %c \n",DCFData.AusrichtungL);
 	printf("Zeitzone: %d \n",DCFData.ZeitZone);
+	return(0);
 }
 		
 //#############################################################################################################  
@@ -356,4 +376,5 @@ int dcf77_end()
 	digitalWrite(LedBlu,0);	// LED-Ausschalten
 	digitalWrite(LedRot,0);
 	digitalWrite(LedGrn,0);
+	return(0);
 }

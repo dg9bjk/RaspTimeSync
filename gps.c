@@ -6,6 +6,8 @@
 
 #define GPSArray	1023	// Zeichenpuffer GPS RX
 
+
+
 //###################################################################################################################################
 // Initialisierung für GPS-Mouse
 int gpsmouseinit()
@@ -299,62 +301,72 @@ int gpsdecodeGPRMC(char gpszeit[],int length,struct Zeitstempel *data)
 
 //###################################################################################################################################
 // Hauptfunktion
-int gps_init(void)
+int gps_init(int *fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSData)
 {
 	int gpsinitstatus = 0;	// GPS-Mouse aktiv =1
 	int gpsstatus = 0;	// GPS gültig =1
-	
-	int fdserial;		// Dateizeiger zur USB-GPS-Mouse
-	char gpschararray[GPSArray]; 	// RX_buffer GPS
-	int gpsrxcnt = 0;		// Anzahl der RX-Daten
 
-	// GPS-Daten-Array löschen
-	for(n=0;n<GPSArray;n++)
-		gpschararray[GPSArray] = 0x0; 				// RX_buffer GPS
-	
+        GPSData.Stunde = 0;
+        GPSData.Minute = 0;
+        GPSData.Sekunde =0;
+        GPSData.Tag = 1;
+        GPSData.Wochentag = -1;
+        GPSData.Monat = 1;
+        GPSData.Jahr = 70;
+        GPSData.Status = -1;
+        GPSData.Schaltsekunde = -1;
+        GPSData.UmschaltungZeitZone = -1;
+        GPSData.Breitengrad = -1;
+        GPSData.Laengengrad = -1;
+        GPSData.AusrichtungB = 'Z';
+        GPSData.AusrichtungL = 'Z';
+        GPSData.ZeitZone = 0;
 
-//Serial-Schnittstelle (USB-GPS-Mouse) aktivieren
+	//Serial-Schnittstelle (USB-GPS-Mouse) aktivieren
 	fdserial=gpsmouseinit();
 	if(fdserial < 0)
 	{
 		printf("GPS not OK!\n");
-		gpsinitstatus=0;
+		gpsinitstatus = -1;
 	}
 	else
 	{
-		gpsinitstatus=1;
+		gpsinitstatus = 1;
 	}
-
 }
 
 //###################################################################################################################################
 // GPSZeit lesen
-int gps_run()
+int gps_run(int fdserial,struct Zeitstempel GPSData)
 {
-		if(gpsinitstatus > 0)
+	char gpschararray[GPSArray];
+	int gpsrxcnt;
+		
+	// GPS-Daten-Array löschen
+	for(n=0;n<GPSArray;n++)
+		gpschararray[GPSArray] = 0x0; 				// RX_buffer GPS
+
+	gpsrxcnt = gpsread(fdserial,gpschararray);
+	if(gpsrxcnt > 0) // Wenn Daten da sind
+	{
+		if(debug==2)
+			printf("Debug:%s\n",gpschararray);
+		if(gpsdecodeGPRMC(gpschararray,gpsrxcnt,&GPSData)) // Decoder
 		{
-			gpsrxcnt = gpsread(fdserial,gpschararray);
-			if(gpsrxcnt > 0) // Wenn Daten da sind
-			{
-				if(debug==2)
-					printf("Debug:%s\n",gpschararray);
-				if(gpsdecodeGPRMC(gpschararray,gpsrxcnt,&GPSData)) // Decoder
-				{
-					printf("GPS Decoderfehler\n");
-					gpsstatus = 0;
-				}
-				else
-					gpsstatus = 1; // Daten sind gültig
-			}
+			printf("GPS Decoderfehler\n");
+			return(0);
 		}
 		else
-			gpsstatus = 0;
+			return(-1); // Daten sind gültig
+	}
+	else
+		return(-1);
 }
 
 
 //###################################################################################################################################
 // Debuginformation Zusammenfasseung Zeit-Decoder
-int gps_debug()
+int gps_debug(struct Zeitstempel GPSData)
 {
 	printf("-----------GPS------------\n");
 	printf("Stunde: %d \n",GPSData.Stunde);
@@ -372,11 +384,11 @@ int gps_debug()
 	printf("RichtungBreite: %c \n",GPSData.AusrichtungB);
 	printf("RichtungLänge : %c \n",GPSData.AusrichtungL);
 	printf("Zeitzone: %d \n",GPSData.ZeitZone);
+	return(0);
 }
 
-
 //###################################################################################################################################
-int gps_end()
+int gps_end(int fdserial)
 {
 	close(fdserial);
 }
