@@ -16,9 +16,9 @@
 #define BlockHigh	2	// !!! Minium 2 !!! Datenspeicher für ein Tag (Historik) 
 
 // Bit-Decoder
-int syncbit     = 0;	// Für LED-Steuerung
-int Bitaktuell  = 0;
-int Bit	        = 0;
+int syncbit;
+int Bitaktuell;
+int Bit;
 int dcfInterruptInit;
 int DCFSekunde;
 int runClockcnt;
@@ -274,6 +274,9 @@ int dcf77_init(struct Zeitstempel DCFData)
 		for(n=0;n < BlockLength;n++)
 			Daten[BlockHigh][BlockLength] = 0x0;	// Array der Decoder-Logik
 
+	syncbit = 0;
+	Bitaktuell = 0;
+	Bit = 0;
 	dcfInterruptInit = 1;
         runClockcnt = 0;
         runArraycnt = 0;
@@ -308,8 +311,9 @@ int dcf77_init(struct Zeitstempel DCFData)
 //#############################################################################################################  
 int dcf77_run(struct Zeitstempel DCFData)
 {
-// LED Steuerung für DCF77 Empfang 
 	int dcfreturn = 0;
+	
+	// LED Steuerung für DCF77 Empfang 
 		if(Bitaktuell)	// Wenn ein Biterkannt wurde
 		{
 			if(Bit)	// 1
@@ -342,8 +346,8 @@ int dcf77_run(struct Zeitstempel DCFData)
 			else
 				dcfreturn = 1;	// Daten sind gültig
 			syncbit=0;	
-			return(dcfreturn);	
 		}
+		return(dcfreturn);
 }
 
 //#############################################################################################################  

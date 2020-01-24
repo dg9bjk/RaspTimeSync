@@ -1,4 +1,8 @@
 #include "ntpserver.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
 
 #ifdef dcf77
 #include "dcf77.c"
@@ -8,35 +12,14 @@
 #include "gps.c"
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <sys/time.h>
 #include <sys/timex.h>
-
-// Debug-Information für Entwicklung
-// 0 = Auslieferung - Keine Informationen
-// 1 = Zeitmessung direkt (nur DCF77)
-// 2 = Protokoll rahmen (DCF77 und GPS)
-// 3 = Dekodierte Daten (DCF77 und GPS)
-// 4 = Zeitstring (Epche-Time)
-int debug = 0;
 
 // Hauptfunktion
 int main(void)
 {
-        int gpsinitstatus = 0;  // GPS-Mouse aktiv (= 1)
-        int dcfinitstatus = 0;  // DCF 77 aktiv (= 1)
-
-        int gpsstatus = 0;      // GPS gültig =1
-        char gpschararray[GPSArray];    // RX_buffer GPS
-
-        int dcfstatus = 0;      // DCF77 gültig =1
-        int update = 0;         // Sekundenschalter für Display-Information
-        int n = 0;              // lokaler Zähler
-        int m = 0;
-        int PRGabbruch = 1;     // Schleife wird beendet, wegen groben Fehler. 0 bei Fehler
-        int ntpstart = 0;       // Zum eimaligen starten des NTP-Servers
+        int PRGabbruch;		// Schleife wird beendet, wegen groben Fehler. 0 bei Fehler
+        int ntpstart;		// Zum eimaligen starten des NTP-Servers
+        int update;		// Sekundenschalter für Display-Information
 
         struct tm timeset;      // Zum Erstellen der Epoch-Zeiten für Systemzeitkorrektur
         unsigned long temptime1;
@@ -51,34 +34,47 @@ int main(void)
         time_t baktime;
         time_t startzeit;       // Systemstart
 
-        struct Zeitstempel DCFData;     // Struktur der Decoderdaten
-        struct Zeitstempel GPSData;
-
-        int fdserial;           // Dateizeiger zur USB-GPS-Mouse
-        char gpschararray[GPSArray];    // RX_buffer GPS
-        int gpsrxcnt = 0;               // Anzahl der RX-Daten
-
         struct timex timebuf;
         int timeretur;
         int dl = 0;
         time_t temptime;
 
+#ifdef dcf77
+        int dcfinitstatus;	// DCF 77 aktiv (= 1)
+        int dcfstatus;		// DCF77 gültig =1
+        struct Zeitstempel DCFData;     // Struktur der Decoderdaten
+#endif
+
+#ifdef gps
+        int gpsinitstatus;	// GPS-Mouse aktiv (= 1)
+        int gpsstatus;		// GPS gültig =1
+        int fdserial;           	// Dateizeiger zur USB-GPS-Mouse
+        char gpschararray[GPSArray]; 	// Zeichenspeicher GPS Array
+        struct Zeitstempel GPSData;	// Struktur der Decoderdaten
+#endif        
+
 // Erste Initialierung
 
         PRGabbruch = 1;
         ntpstart = 0;
+        update = 0;
+        
+        set_of_time_dcf = 0;
+        dcfstatus = 0;
+        set_of_time_gps = 0;
+        gpsstatus = 0;
 
         time(&akttime);
         time(&startzeit);
 
 #ifdef dcf77
 // DCF77 Initialisierung
-        dcfinitstatus = dcf77_init(&DCFData)
+        dcfinitstatus = dcf77_init(DCFData);
 #endif
 
 #ifdef gps
 // GPS Initialisierung
-        gpsinitstatus = gps_init(&fdserial,gpschararray,&GPSData);
+        gpsinitstatus = gps_init(&fdserial,gpschararray,GPSData);
 #endif
 
 //Hauptprogramm
@@ -94,40 +90,40 @@ int main(void)
                         update = 0;
                 time(&akttime);
 
+#ifdef dcf77
 //DCF77 Empfang
         if(dcfinitstatus > 0)
-                 dcfstatus = dcf77_run(&DCFData);
+                 dcfstatus = dcf77_run(DCFData);
+#endif
 
+#ifdef gps
 // GPSZeit lesen
-        if((gpsinitstatus > 0)
-                gpsstatus = gps_run(fdserial,&GPSData);
+        if(gpsinitstatus > 0)
+                gpsstatus = gps_run(fdserial,gpschararray,GPSData);
+#endif
 
 // Debuginformation Zusammenfasseung Zeit-Decoder
                 if((debug == 3) & (update))
                 {
-                        if(gpsstatus)
+#ifdef dcf77
+                        if(dcfstatus > 0)
                         {
-                                gps_debug(&GPSData);
+                                dcf77_debug(DCFData);
                         }
-                        if(dcfstatus)
+#endif
+#ifdef gps
+                        if(gpsstatus > 0)
                         {
-                                dcf77_debug(&DCFData);
+                                gps_debug(GPSData);
                         }
+#endif
                         printf("--------------------------\n");
                         printf("Zeitanzeige System: %ld -> %s",akttime,ctime(&akttime));
                         printf("--------------------------\n");
                 }
 
 // Setzen der Zeitinformation in das System
-                timeset.tm_sec   = GPSData.Sekunde;
-                timeset.tm_min   = GPSData.Minute;
-                timeset.tm_hour  = GPSData.Stunde;
-                timeset.tm_mday  = GPSData.Tag;
-                timeset.tm_mon   = GPSData.Monat-1;
-                timeset.tm_year  = (GPSData.Jahr+2000)-1900;
-                timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
-                set_of_time_gps = mktime(&timeset);
-
+#ifdef dcf77
                 timeset.tm_sec = DCFSekunde;
                 timeset.tm_min = DCFData.Minute;
                 timeset.tm_hour = DCFData.Stunde;
@@ -137,25 +133,40 @@ int main(void)
                 timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
                 set_of_time = mktime(&timeset);
                 set_of_time_dcf = set_of_time - (DCFData.ZeitZone * 3600); // Zeitzonen Rückrechnung
+#endif
+#ifdef gps
+                timeset.tm_sec   = GPSData.Sekunde;
+                timeset.tm_min   = GPSData.Minute;
+                timeset.tm_hour  = GPSData.Stunde;
+                timeset.tm_mday  = GPSData.Tag;
+                timeset.tm_mon   = GPSData.Monat-1;
+                timeset.tm_year  = (GPSData.Jahr+2000)-1900;
+                timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
+                set_of_time_gps = mktime(&timeset);
+#endif
 
                 if((update) & (akttime > startzeit + DelaySetTime))
                 {
                         if(debug==4)
                         {
                                 printf("Aktuelles System: %ld\n",akttime);
+#ifdef gps
                                 printf("Empfangen GPS: %ld \n",set_of_time_gps);
+#endif
+#ifdef dcf77
                                 printf("Empfangen DCF: %ld \n",set_of_time_dcf);
+#endif
                         }
 
                         if((abs(akttime - set_of_time_dcf) > MaxTimeDiff) | (abs(akttime - set_of_time_gps) > MaxTimeDiff))
                         {
-                                if((gpsstatus) & (dcfstatus))
+                                if((gpsstatus > 1) & (dcfstatus > 1))
                                 {
-                                        if((GPSData.Status == 0) & (DCFData.Status == 0))       // Be
+                                        if((GPSData.Status == 0) & (DCFData.Status == 0))       // Beide Uhrwerte sind korrekt
                                         {
                                                 temptime1=set_of_time_dcf;
                                                 temptime2=set_of_time_gps;
-                                                if(abs(temptime1-temptime2) < Diff)             // We
+                                                if(abs(temptime1-temptime2) < Diff)             // Wenn die Zeitdifferenz kleiner des Grenzwertes ist.
                                                 {
                                                         timerclear(&settime);
                                                         settime.tv_sec=set_of_time_dcf;
@@ -163,15 +174,15 @@ int main(void)
                                                 }
                                                 else
                                                 {
-                                                        printf("\n Fehler: Zeitdifferenz zwischen bei\n");
+                                                        printf("\n Fehler: Zeitdifferenz zwischen beiden Zeitquellen ist zu gross\n");
                                                 }
                                         }
-                                        else if((GPSData.Status > 0) & (DCFData.Status > 0))    // We
+                                        else if((GPSData.Status > 0) & (DCFData.Status > 0))    // Beide Uhrwerte werden als gestört definiert
                                         {
                                                 printf("\n Fehler: Beide Quellen melden Einschränkung\n");
                                                 temptime1=set_of_time_dcf;
                                                 temptime2=set_of_time_gps;
-                                                if(abs(temptime1-temptime2) < Diff)             // We
+                                                if(abs(temptime1-temptime2) < Diff)             // Wenn die Zeitdifferenz kleiner des Grenzwertes ist.
                                                 {
                                                         timerclear(&settime);
                                                         settime.tv_sec=set_of_time_dcf;
@@ -179,17 +190,17 @@ int main(void)
                                                 }
                                                 else
                                                 {
-                                                        printf("\n Fehler: Zeitdifferenz zwischen bei\n");
+                                                        printf("\n Fehler: Zeitdifferenz zwischen beiden Zeitquellen ist zu gross\n");
                                                 }
                                         }
-                                        else if((GPSData.Status == 0) & (DCFData.Status != 0))  // Nu
+                                        else if((GPSData.Status == 0) & (DCFData.Status != 0))  // Nur eine Zeitquelle ok
                                         {
                                                 printf("\n Fehler: DCF77 Signal meldet Einschänkungen\n");
                                                 timerclear(&settime);
                                                 settime.tv_sec=set_of_time_gps;
                                                 timesetreturn = settimeofday(&settime,0);
                                         }
-                                        else if((DCFData.Status == 0) & (GPSData.Status != 0))  // Nu
+                                        else if((DCFData.Status == 0) & (GPSData.Status != 0))  // Nur eine Zeitquelle ok
                                         {
                                                 printf("\n Fehler: GPS Signal meldet Einschänkungen!");
                                                 timerclear(&settime);
@@ -224,7 +235,7 @@ int main(void)
 
                                 if(timesetreturn)
                                 {
-                                        printf("\n\n Fehler: Systemzeit lässt sich nicht setzen! \n")
+                                        printf("\n\n Fehler: Systemzeit lässt sich nicht setzen! \n");
                                         printf("  ----  Root-Rechte ? ---- \n\n");
                                         PRGabbruch = 0;         // Abbruch des Programmes
                                 }
@@ -238,7 +249,7 @@ int main(void)
                                 }
                         }
                 }
-
+// NTP Server starten - nur nach der Zeitsync nötig
                 if((akttime > startzeit + DelaySetTime)& (! ntpstart))
                 {
                         system("service ntp start &");
@@ -247,6 +258,7 @@ int main(void)
 
                 delay(3); // Entlastung der CPU
 
+// samfte Zeitkorrektur
                 if(update)
                 {
                         timeretur=adjtimex(&timebuf);
@@ -276,8 +288,12 @@ int main(void)
 
         }
 // Bei Programmende
+#ifdef dcf77
         dcf77_end();
-        gps_end(fserial);
+#endif
+#ifdef gps
+        gps_end(fdserial);
+#endif
 
         return(-1);
 }

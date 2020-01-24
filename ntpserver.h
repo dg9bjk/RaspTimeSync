@@ -24,3 +24,11 @@ struct Zeitstempel
         char AusrichtungB;
         char AusrichtungL;
 };
+
+// Debug-Information für Entwicklung
+// 0 = Auslieferung - Keine Informationen
+// 1 = Zeitmessung direkt (nur DCF77)
+// 2 = Protokoll rahmen (DCF77 und GPS)
+// 3 = Dekodierte Daten (DCF77 und GPS)
+// 4 = Zeitstring (Epche-Time)
+int debug = 0;

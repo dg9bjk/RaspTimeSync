@@ -6,8 +6,6 @@
 
 #define GPSArray	1023	// Zeichenpuffer GPS RX
 
-
-
 //###################################################################################################################################
 // Initialisierung für GPS-Mouse
 int gpsmouseinit()
@@ -303,8 +301,11 @@ int gpsdecodeGPRMC(char gpszeit[],int length,struct Zeitstempel *data)
 // Hauptfunktion
 int gps_init(int *fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSData)
 {
-	int gpsinitstatus = 0;	// GPS-Mouse aktiv =1
-	int gpsstatus = 0;	// GPS gültig =1
+	int n;
+
+        // GPS-Daten-Array löschen
+        for(n=0;n<GPSArray;n++)
+                gpschararray[GPSArray] = 0x0;                           // RX_buffer GPS
 
         GPSData.Stunde = 0;
         GPSData.Minute = 0;
@@ -323,29 +324,25 @@ int gps_init(int *fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSDat
         GPSData.ZeitZone = 0;
 
 	//Serial-Schnittstelle (USB-GPS-Mouse) aktivieren
-	fdserial=gpsmouseinit();
+	*fdserial = gpsmouseinit();
 	if(fdserial < 0)
 	{
 		printf("GPS not OK!\n");
-		gpsinitstatus = -1;
+		return(-1);
 	}
 	else
 	{
-		gpsinitstatus = 1;
+		return(1);
 	}
 }
 
 //###################################################################################################################################
 // GPSZeit lesen
-int gps_run(int fdserial,struct Zeitstempel GPSData)
+int gps_run(int fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSData)
 {
-	char gpschararray[GPSArray];
-	int gpsrxcnt;
-		
-	// GPS-Daten-Array löschen
-	for(n=0;n<GPSArray;n++)
-		gpschararray[GPSArray] = 0x0; 				// RX_buffer GPS
-
+	int gpsrxcnt  = 0;
+	int gpsreturn = 0;
+	
 	gpsrxcnt = gpsread(fdserial,gpschararray);
 	if(gpsrxcnt > 0) // Wenn Daten da sind
 	{
@@ -354,13 +351,12 @@ int gps_run(int fdserial,struct Zeitstempel GPSData)
 		if(gpsdecodeGPRMC(gpschararray,gpsrxcnt,&GPSData)) // Decoder
 		{
 			printf("GPS Decoderfehler\n");
-			return(0);
+			gpsreturn = -1;
 		}
 		else
-			return(-1); // Daten sind gültig
+			gpsreturn = 1; // Daten sind gültig
 	}
-	else
-		return(-1);
+	return(gpsreturn);
 }
 
 
