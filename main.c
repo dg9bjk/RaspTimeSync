@@ -155,7 +155,7 @@ int main(void)
                 timeset.tm_mon = (DCFData.Monat-1);     // Monat ist von 0 - 11 definiert.
                 timeset.tm_year = (DCFData.Jahr+2000)-1900;
                 timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
-                set_of_time = mktime(&timeset);
+                set_of_time_dcf = mktime(&timeset);
                 set_of_time_dcf = set_of_time_dcf - (DCFData.ZeitZone * 3600); // Zeitzonen Rückrechnung
 #else
                 set_of_time_dcf = akttime;	// Für die Auswertung sind beide Zeiten identisch, somit keine Reaktion vom System
