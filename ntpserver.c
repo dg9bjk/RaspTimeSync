@@ -43,7 +43,11 @@ int main(void)
         int dcfinitstatus;	// DCF 77 aktiv (= 1)
         int dcfstatus;		// DCF77 gültig =1
         struct Zeitstempel DCFData;     // Struktur der Decoderdaten
+#else
+        int ledcolor;
+        int ledflash;
 #endif
+
 
 #ifdef gps
         int gpsinitstatus;	// GPS-Mouse aktiv (= 1)
@@ -58,7 +62,12 @@ int main(void)
         PRGabbruch = 1;
         ntpstart = 0;
         update = 0;
-        
+
+#ifndef dcf77
+        ledcolor = 1;		// rot
+        ledflash = 0;		// Aus
+#endif
+       
         set_of_time_dcf = 0;
         dcfstatus = 0;
         set_of_time_gps = 0;
@@ -85,6 +94,17 @@ int main(void)
                 {
                         baktime = akttime;
                         update = 1;
+#ifndef dcf77
+                        ledflash = ! ledflash;
+                        if(ledcolor == 1)
+                                digitalWrite(LedRot,ledflash); // ledcolor = 1
+                        else if(ledcolor == 2)
+                                digitalWrite(LedGrn,ledflash); // ledcolor = 2
+                        else if(ledcolor == 3)
+                                digitalWrite(LedBlu,ledflash); // ledcolor = 3
+                        else
+                                digitalWrite(LedRot,1); // ledcolor = 1
+#endif
                 }
                 else
                         update = 0;
@@ -100,6 +120,14 @@ int main(void)
 // GPSZeit lesen
         if(gpsinitstatus > 0)
                 gpsstatus = gps_run(fdserial,gpschararray,GPSData);
+#endif
+#ifndef dcf77
+        if(gpsinitstatus < 0)
+                ledcolor = 1;	// Rot
+        if(gpsstatus > 0)
+                ledcolor = 2;	// Grün
+        if(gpsstatus < 0)
+                ledcolor = 3;	// Blau
 #endif
 
 // Debuginformation Zusammenfasseung Zeit-Decoder

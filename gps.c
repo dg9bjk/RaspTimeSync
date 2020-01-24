@@ -6,6 +6,13 @@
 
 #define GPSArray	1023	// Zeichenpuffer GPS RX
 
+#ifndef dcf77
+#include <wiringPi.h>
+#define LedRot    1
+#define LedGrn    2
+#define LedBlu    3
+#endif
+
 //###################################################################################################################################
 // Initialisierung für GPS-Mouse
 int gpsmouseinit()
@@ -354,7 +361,9 @@ int gps_run(int fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSData)
 			gpsreturn = -1;
 		}
 		else
+		{
 			gpsreturn = 1; // Daten sind gültig
+		}
 	}
 	return(gpsreturn);
 }
@@ -386,5 +395,11 @@ int gps_debug(struct Zeitstempel GPSData)
 //###################################################################################################################################
 int gps_end(int fdserial)
 {
+#ifndef dcf77
+	digitalWrite(LedBlu,0); // LED-Ausschalten
+        digitalWrite(LedRot,0);
+        digitalWrite(LedGrn,0);
+#endif
 	close(fdserial);
+	return(0);
 }
