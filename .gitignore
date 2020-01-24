@@ -3,6 +3,7 @@ ledtest.c~
 dcf77.c~
 gps.c~
 timesync.c~
+main.c~
 ntpserver.c~
 ntpserver.h~
 make~
