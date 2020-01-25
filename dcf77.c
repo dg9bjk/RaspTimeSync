@@ -245,10 +245,11 @@ int dcf77decode(int localClockcnt,int localArraycnt,struct Zeitstempel *data)
 }
 
 //#############################################################################################################  
-int dcf77_init(struct Zeitstempel DCFData)
+int dcf77_init(struct Zeitstempel *DCFData)
 {
 	int m,n;			// Laufvariablen
 
+	printf("DCF77 Initialisierung\n");
 	// GPIO-Ports konfigurieren	
 	pinMode(BtnPin,INPUT);		// GPIO - Auf Input für DCF-Rx
 	pullUpDnControl(BtnPin,PUD_OFF);// GPIO ohne Pull-Up/-Down
@@ -277,21 +278,21 @@ int dcf77_init(struct Zeitstempel DCFData)
         runArraycnt = 0;
         DCFSekunde  = 0;
 
-        DCFData.Stunde = 0;
-        DCFData.Minute = 0;
-        DCFData.Sekunde = 0;
-        DCFData.Tag = 1;
-        DCFData.Wochentag = -1;
-        DCFData.Monat = 1;
-        DCFData.Jahr = 70;
-        DCFData.Status = -1;
-        DCFData.Schaltsekunde = -1;
-        DCFData.UmschaltungZeitZone = -1;
-        DCFData.Breitengrad = -1;
-        DCFData.Laengengrad = -1;
-        DCFData.AusrichtungB = 'Z';
-        DCFData.AusrichtungL = 'Z';
-        DCFData.ZeitZone = 0;
+        DCFData->Stunde = 0;
+        DCFData->Minute = 0;
+        DCFData->Sekunde = 0;
+        DCFData->Tag = 1;
+        DCFData->Wochentag = -1;
+        DCFData->Monat = 1;
+        DCFData->Jahr = 70;
+        DCFData->Status = -1;
+        DCFData->Schaltsekunde = -1;
+        DCFData->UmschaltungZeitZone = -1;
+        DCFData->Breitengrad = -1;
+        DCFData->Laengengrad = -1;
+        DCFData->AusrichtungB = 'Z';
+        DCFData->AusrichtungL = 'Z';
+        DCFData->ZeitZone = 0;
 	
 // Installieren der Interrupt-Routine
 	if(wiringPiISR(BtnPin, INT_EDGE_BOTH, BtnISR))
@@ -304,9 +305,9 @@ int dcf77_init(struct Zeitstempel DCFData)
 }
 
 //#############################################################################################################  
-int dcf77_run(struct Zeitstempel DCFData)
+int dcf77_run(struct Zeitstempel *DCFData)
 {
-	int dcfreturn = 0;
+	static int dcfreturn;
 	
 	// LED Steuerung für DCF77 Empfang 
 		if(Bitaktuell)	// Wenn ein Biterkannt wurde
@@ -333,7 +334,7 @@ int dcf77_run(struct Zeitstempel DCFData)
 			digitalWrite(LedRot,0);
 			digitalWrite(LedGrn,0);
 // DCF77 Decodierung Datenpaket
-			if(dcf77decode(runClockcnt,runArraycnt,&DCFData)) // Decodieren der Datenpakte
+			if(dcf77decode(runClockcnt,runArraycnt,DCFData)) // Decodieren der Datenpakte
 			{
 				printf("DCF77 Decoderfehler\n");
 				dcfreturn = -1;

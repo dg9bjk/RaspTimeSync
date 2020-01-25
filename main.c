@@ -1,7 +1,7 @@
+#include <wiringPi.h>
 #include "ntpserver.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <wiringPi.h>
 #include <time.h>
 #include "timesync.c"
 
@@ -15,10 +15,6 @@
 
 #ifdef gps
 #include "gps.c"
-#endif
-
-#ifndef wiringlib
-#include <wiringPi.h>
 #endif
 
 #include <sys/timex.h>
@@ -61,6 +57,8 @@ int main(void)
 #endif
 
 // Erste Initialierung
+        // Aufruf der Rasp-Spezifischen-Einstellungen
+        wiringPiSetup();
 
         PRGabbruch = 1;
         ntpstart = 0;
@@ -75,14 +73,14 @@ int main(void)
 
 #ifdef dcf77
 // DCF77 Initialisierung
-        dcfinitstatus = dcf77_init(DCFData);
+        dcfinitstatus = dcf77_init(&DCFData);
 #else
         dcfinitstatus = -1;
 #endif
 
 #ifdef gps
 // GPS Initialisierung
-        gpsinitstatus = gps_init(&fdserial,gpschararray,GPSData);
+        gpsinitstatus = gps_init(&fdserial,gpschararray,&GPSData);
 #else
         gpsinitstatus = -1;
 #endif
@@ -115,7 +113,7 @@ int main(void)
 #ifdef dcf77
                 //DCF77 Empfang
                 if(dcfinitstatus > 0)
-                        dcfstatus = dcf77_run(DCFData);
+                        dcfstatus = dcf77_run(&DCFData);
 #else
                 // Wenn kein DCF77 Modul aktiv ist, wird das Modul gesperrt
                 dcfstatus = -1;
@@ -124,7 +122,7 @@ int main(void)
 #ifdef gps
                 // GPSZeit lesen
                 if(gpsinitstatus > 0)
-                        gpsstatus = gps_run(fdserial,gpschararray,GPSData);
+                        gpsstatus = gps_run(fdserial,gpschararray,&GPSData);
 #else
                 // Wenn kein GPS Modul aktiv ist, wird das Modul gesperrt
                 gpsstatus = -1;
@@ -183,6 +181,7 @@ int main(void)
                 timeset.tm_year  = (GPSData.Jahr+2000)-1900;
                 timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
                 set_of_time_gps = mktime(&timeset);
+                set_of_time_gps = set_of_time_gps + 1;
 #else
                 set_of_time_gps = akttime;	// Wenn Empfänger nicht aktiv, dann wird die aktuelle Zeit angenommen
                 GPSData.Status = -1;
@@ -191,21 +190,21 @@ int main(void)
                 if((debug==4) & update)	// Anzeige der Uhrzeiten im Zusammenhang
                 {
                         printf("Aktuelles System: %ld\n",akttime);
-#ifdef gps
-                        printf("Empfangen GPS: %ld \n",set_of_time_gps);
-#endif
 #ifdef dcf77
                         printf("Empfangen DCF: %ld \n",set_of_time_dcf);
+#endif
+#ifdef gps
+                        printf("Empfangen GPS: %ld \n",set_of_time_gps);
 #endif
                 }
 
                 // Die Uhrzeit einmal hart setzten
                 if((firstsync) & (akttime > startzeit + DelaySetTime))
                 {
-                        funkreturn=time_set_once(akttime,set_of_time_dcf,set_of_time_gps,GPSData,DCFData,dcfstatus,gpsstatus);
+                        funkreturn=time_set_once(akttime,set_of_time_dcf,set_of_time_gps,&GPSData,&DCFData,dcfstatus,gpsstatus);
                         if(funkreturn < 0)
                                 PRGabbruch = 0;	// Ende des Programmes wegen Root-Rechte
-                        if(funkreturn > 0)
+                        if(funkreturn >= 0)
                         {
                                 time(&akttime);
                                 baktime = akttime;
@@ -214,6 +213,7 @@ int main(void)
                                 // NTP Server starten - nur nach der Zeitsync nötig
                                 if(! ntpstart)
                                 {
+                                        printf("NTP Server gestartet\n");
                                         system("service ntp start &");
                                         ntpstart = 1;
                                 }

@@ -31,4 +31,4 @@ struct Zeitstempel
 // 2 = Protokoll rahmen (DCF77 und GPS)
 // 3 = Dekodierte Daten (DCF77 und GPS)
 // 4 = Zeitstring (Epche-Time)
-int debug = 4;
+int debug = 0;

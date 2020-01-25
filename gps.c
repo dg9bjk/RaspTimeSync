@@ -299,29 +299,30 @@ int gpsdecodeGPRMC(char gpszeit[],int length,struct Zeitstempel *data)
 
 //###################################################################################################################################
 // Hauptfunktion
-int gps_init(int *fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSData)
+int gps_init(int *fdserial,char gpschararray[GPSArray],struct Zeitstempel *GPSData)
 {
 	int n;
+	printf("GPS Initialisierung\n");
 
         // GPS-Daten-Array löschen
         for(n=0;n<GPSArray;n++)
                 gpschararray[GPSArray] = 0x0;                           // RX_buffer GPS
 
-        GPSData.Stunde = 0;
-        GPSData.Minute = 0;
-        GPSData.Sekunde =0;
-        GPSData.Tag = 1;
-        GPSData.Wochentag = -1;
-        GPSData.Monat = 1;
-        GPSData.Jahr = 70;
-        GPSData.Status = -1;
-        GPSData.Schaltsekunde = -1;
-        GPSData.UmschaltungZeitZone = -1;
-        GPSData.Breitengrad = -1;
-        GPSData.Laengengrad = -1;
-        GPSData.AusrichtungB = 'Z';
-        GPSData.AusrichtungL = 'Z';
-        GPSData.ZeitZone = 0;
+        GPSData->Stunde = 0;
+        GPSData->Minute = 0;
+        GPSData->Sekunde =0;
+        GPSData->Tag = 1;
+        GPSData->Wochentag = -1;
+        GPSData->Monat = 1;
+        GPSData->Jahr = 70;
+        GPSData->Status = -1;
+        GPSData->Schaltsekunde = -1;
+        GPSData->UmschaltungZeitZone = -1;
+        GPSData->Breitengrad = -1;
+        GPSData->Laengengrad = -1;
+        GPSData->AusrichtungB = 'Z';
+        GPSData->AusrichtungL = 'Z';
+        GPSData->ZeitZone = 0;
 
 	//Serial-Schnittstelle (USB-GPS-Mouse) aktivieren
 	*fdserial = gpsmouseinit();
@@ -338,17 +339,17 @@ int gps_init(int *fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSDat
 
 //###################################################################################################################################
 // GPSZeit lesen
-int gps_run(int fdserial,char gpschararray[GPSArray],struct Zeitstempel GPSData)
+int gps_run(int fdserial,char gpschararray[GPSArray],struct Zeitstempel *GPSData)
 {
 	int gpsrxcnt  = 0;
-	int gpsreturn = 0;
+	static int gpsreturn;
 	
 	gpsrxcnt = gpsread(fdserial,gpschararray);
 	if(gpsrxcnt > 0) // Wenn Daten da sind
 	{
 		if(debug==2)
 			printf("Debug:%s\n",gpschararray);
-		if(gpsdecodeGPRMC(gpschararray,gpsrxcnt,&GPSData)) // Decoder
+		if(gpsdecodeGPRMC(gpschararray,gpsrxcnt,GPSData)) // Decoder
 		{
 			printf("GPS Decoderfehler\n");
 			gpsreturn = -1;
