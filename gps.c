@@ -6,13 +6,6 @@
 
 #define GPSArray	1023	// Zeichenpuffer GPS RX
 
-#ifndef dcf77
-#include <wiringPi.h>
-#define LedRot    1
-#define LedGrn    2
-#define LedBlu    3
-#endif
-
 //###################################################################################################################################
 // Initialisierung für GPS-Mouse
 int gpsmouseinit()

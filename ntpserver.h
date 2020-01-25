@@ -1,5 +1,5 @@
-#define MaxTimeDiff     30      // Maximale Abweichtung der Systemzeit
-#define Diff            5       // Maximale Abweichtung zwischen DCF77 und GPS-Zeiten
+#define MaxTimeDiff     10      // Maximale Abweichtung der Systemzeit
+#define Diff            2       // Maximale Abweichtung zwischen DCF77 und GPS-Zeiten
 #define DelaySetTime    300     // Verzögerung der Zeitkorrektur in Sekunden, bis alle Zeiten erfasst sind - Minimum 5 Minuten
 
 #define dcf77
@@ -31,4 +31,4 @@ struct Zeitstempel
 // 2 = Protokoll rahmen (DCF77 und GPS)
 // 3 = Dekodierte Daten (DCF77 und GPS)
 // 4 = Zeitstring (Epche-Time)
-int debug = 0;
+int debug = 4;

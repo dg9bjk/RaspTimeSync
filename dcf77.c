@@ -1,9 +1,4 @@
-#include <wiringPi.h>
-
 #define BtnPin    0		// GPIO-Zuordnung
-#define LedRot    1
-#define LedGrn    2
-#define LedBlu    3
 
 #define LowBitMin	0.080	// Timing-Grenzen fpr DCF77-Signal
 #define LowBitMax	0.130
