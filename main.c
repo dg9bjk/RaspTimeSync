@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+//#include <sys/time.h>
+#include <errno.h>
+#include <sys/timex.h>
 #include "timesync.c"
 
 #define LedRot    1
@@ -183,12 +186,13 @@ int main(void)
 
                 if((debug==4) & update)	// Anzeige der Uhrzeiten im Zusammenhang
                 {
-                        printf("Aktuelles System: %ld\n",akttime);
+                        printf("-----------------------------\n");
+                        printf("Aktuelles System: %ld - %s",akttime,ctime(&akttime));
 #ifdef dcf77
-                        printf("Empfangen DCF: %ld \n",set_of_time_dcf);
+                        printf("Empfangen DCF:    %ld - %s",set_of_time_dcf,ctime(&set_of_time_dcf));
 #endif
 #ifdef gps
-                        printf("Empfangen GPS: %ld \n",set_of_time_gps);
+                        printf("Empfangen GPS:    %ld - %s",set_of_time_gps,ctime(&set_of_time_gps));
 #endif
                 }
 
@@ -209,6 +213,7 @@ int main(void)
                                 {
                                         printf("NTP Server gestartet\n");
                                         system("service ntp start &");
+                                        system("adjtimex -t 10000 -f 0 &");
                                         ntpstart = 1;
                                 }
                                 firstsync = 0;
@@ -224,7 +229,7 @@ int main(void)
                 // langsame Zeitkorrektur
                 if(update)
                 {
-                        funkreturn=time_set_cyclic(set_of_time_dcf,set_of_time_gps);
+                        funkreturn=time_set_cyclic(set_of_time_dcf,set_of_time_gps,akttime);
                 }
 
 // Aufräumen nach dem Durchlauf

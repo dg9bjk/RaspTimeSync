@@ -1,6 +1,4 @@
 #include <sys/time.h>
-#include <sys/timex.h>
-#include <errno.h>
 
 //#############################################################################################################
 int time_set_once(time_t akttime,time_t set_of_time_dcf,time_t set_of_time_gps,struct Zeitstempel *DCFData,struct Zeitstempel *GPSData,int dcfstatus,int gpsstatus)
@@ -103,38 +101,38 @@ int time_set_debug(struct timex *timebuf,time_t set_of_time_dcf,time_t set_of_ti
 {
     time_t temptime;
 
-    printf("Mode: 0x%04x\n",timebuf->modes);
-    printf("offset: %ld\n",timebuf->offset);
+    printf("Mode:    0x%04x\n",timebuf->modes);
+    printf("offset:    %ld\n",timebuf->offset);
     printf("frequency: %ld\n",timebuf->freq);
-    printf("maxerror: %ld\n",timebuf->maxerror);
-    printf("esterror: %ld\n",timebuf->esterror);
-    printf("status: %d\n",timebuf->status);
-    printf("PLL: %ld\n",timebuf->constant);
+    printf("maxerror:  %ld\n",timebuf->maxerror);
+    printf("esterror:  %ld\n",timebuf->esterror);
+    printf("status:    %d\n",timebuf->status);
+    printf("PLL:       %ld\n",timebuf->constant);
     printf("precicion: %ld\n",timebuf->precision);
     printf("tolerance: %ld\n",timebuf->tolerance);
-    printf("tick: %ld\n",timebuf->tick);
+    printf("tick:      %ld\n",timebuf->tick);
     // Read only
-//    printf("ppsfreq: %ld\n",timebuf->ppsfreq);
-//    printf("jitter: %ld\n",timebuf->jitter);
-//    printf("shift: %d\n",timebuf->shift);
-//    printf("stabil: %ld\n",timebuf->stabil);
-//    printf("jitcnt: %ld\n",timebuf->jitcnt);
-//    printf("calcnt: %ld\n",timebuf->calcnt);
-//    printf("errcnt: %ld\n",timebuf->errcnt);
-//    printf("stbcnt: %ld\n",timebuf->stbcnt);
-//    printf("tai: %d\n",timebuf->tai);
+    printf("ppsfreq:   %ld\n",timebuf->ppsfreq);
+    printf("jitter:    %ld\n",timebuf->jitter);
+    printf("shift:     %d\n",timebuf->shift);
+    printf("stabil:    %ld\n",timebuf->stabil);
+    printf("jitcnt:    %ld\n",timebuf->jitcnt);
+    printf("calcnt:    %ld\n",timebuf->calcnt);
+    printf("errcnt:    %ld\n",timebuf->errcnt);
+    printf("stbcnt:    %ld\n",timebuf->stbcnt);
+    printf("tai:       %d\n",timebuf->tai);
     // Zeiten
     printf("timeval: %ld , %ld\n",timebuf->time.tv_sec,timebuf->time.tv_usec);
     temptime=timebuf->time.tv_sec;
     printf("Zeit System: %s",ctime(&temptime));
-    printf("Zeit DCF: %s",ctime(&set_of_time_dcf));
-    printf("Zeit GPS: %s",ctime(&set_of_time_gps));
+    printf("Zeit DCF:    %s",ctime(&set_of_time_dcf));
+    printf("Zeit GPS:    %s",ctime(&set_of_time_gps));
     printf("-------------------------------------------\n");
     return(0);    
 }
 
 //#############################################################################################################
-int time_set_cyclic(time_t set_of_time_dcf,time_t set_of_time_gps)
+int time_set_cyclic(time_t set_of_time_dcf,time_t set_of_time_gps,time_t akttime)
 {
     static struct timex timebuf;            // Struktur muss Global sein ???
     int timeretur;
@@ -144,18 +142,6 @@ int time_set_cyclic(time_t set_of_time_dcf,time_t set_of_time_gps)
     {
         printf("\nDebug Errno: %d\n",errno);
         printf("Adjtimex 1: Status %d\n",timeretur);
-        time_set_debug(&timebuf,set_of_time_dcf,set_of_time_gps);
-    }
-
-    timebuf.status = 0;
-    timebuf.modes = 0;
-    timebuf.modes  = ADJ_STATUS;
-    
-    timeretur=adjtimex(&timebuf);
-    if(debug==5)
-    {
-        printf("\nDebug: %d\n",errno);
-        printf("Adjtimex 2: Status %d\n",timeretur);
         time_set_debug(&timebuf,set_of_time_dcf,set_of_time_gps);
     }
 
