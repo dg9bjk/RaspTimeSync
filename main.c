@@ -111,6 +111,8 @@ int main(void)
                 //DCF77 Empfang
                 if(dcfinitstatus > 0)
                         dcfstatus = dcf77_run(&DCFData);
+                else 
+                        dcfstatus = -1;
 #else
                 // Wenn kein DCF77 Modul aktiv ist, wird das Modul gesperrt
                 dcfstatus = -1;
@@ -120,6 +122,8 @@ int main(void)
                 // GPSZeit lesen
                 if(gpsinitstatus > 0)
                         gpsstatus = gps_run(fdserial,gpschararray,&GPSData);
+                else
+                        gpsstatus = -1;
 #else
                 // Wenn kein GPS Modul aktiv ist, wird das Modul gesperrt
                 gpsstatus = -1;
@@ -155,30 +159,60 @@ int main(void)
 
                 // Setzen der Zeitinformation in das System
 #ifdef dcf77
-                timeset.tm_sec = DCFSekunde;
-                timeset.tm_min = DCFData.Minute;
-                timeset.tm_hour = DCFData.Stunde;
-                timeset.tm_mday = DCFData.Tag;
-                timeset.tm_mon = (DCFData.Monat-1);     // Monat ist von 0 - 11 definiert.
-                timeset.tm_year = (DCFData.Jahr+2000)-1900;
-                timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
-                set_of_time_dcf = mktime(&timeset);
-                set_of_time_dcf = set_of_time_dcf - (DCFData.ZeitZone * 3600); // Zeitzonen Rückrechnung
+                if(dcfstatus > 0)
+                {
+                        timeset.tm_sec = DCFSekunde;
+                        timeset.tm_min = DCFData.Minute;
+                        timeset.tm_hour = DCFData.Stunde;
+                        timeset.tm_mday = DCFData.Tag;
+                        timeset.tm_mon = (DCFData.Monat-1);     // Monat ist von 0 - 11 definiert.
+                        timeset.tm_year = (DCFData.Jahr+2000)-1900;
+                        timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
+                        set_of_time_dcf = mktime(&timeset);
+                        set_of_time_dcf = set_of_time_dcf - (DCFData.ZeitZone * 3600); // Zeitzonen Rückrechnung
+                }
+                else
+                {
+                        timeset.tm_sec = 0;
+                        timeset.tm_min = 0;
+                        timeset.tm_hour = 0;
+                        timeset.tm_mday = 1;
+                        timeset.tm_mon = 0;     // Monat ist von 0 - 11 definiert.
+                        timeset.tm_year = 70;
+                        timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
+                        set_of_time_dcf = mktime(&timeset);
+                        set_of_time_dcf = set_of_time_dcf; // Zeitzonen Rückrechnung
+                }
 #else
                 set_of_time_dcf = akttime;	// Wenn Empfänger nicht aktiv, dann wird die aktuelle Zeit angenommen
                 DCFData.Status = -1;
 #endif
 
-#ifdef gps
-                timeset.tm_sec   = GPSData.Sekunde;
-                timeset.tm_min   = GPSData.Minute;
-                timeset.tm_hour  = GPSData.Stunde;
-                timeset.tm_mday  = GPSData.Tag;
-                timeset.tm_mon   = GPSData.Monat-1;
-                timeset.tm_year  = (GPSData.Jahr+2000)-1900;
-                timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
-                set_of_time_gps = mktime(&timeset);
-                set_of_time_gps = set_of_time_gps + 1;
+#ifdef gps	
+                if(gpsstatus > 0)
+                {
+                        timeset.tm_sec   = GPSData.Sekunde;
+                        timeset.tm_min   = GPSData.Minute;
+                        timeset.tm_hour  = GPSData.Stunde;
+                        timeset.tm_mday  = GPSData.Tag;
+                        timeset.tm_mon   = GPSData.Monat-1;
+                        timeset.tm_year  = (GPSData.Jahr+2000)-1900;
+                        timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
+                        set_of_time_gps = mktime(&timeset);
+                        set_of_time_gps = set_of_time_gps + 1;
+                }
+                else
+                {
+                        timeset.tm_sec = 0;
+                        timeset.tm_min = 0;
+                        timeset.tm_hour = 0;
+                        timeset.tm_mday = 1;
+                        timeset.tm_mon = 0;     // Monat ist von 0 - 11 definiert.
+                        timeset.tm_year = 70;
+                        timeset.tm_isdst = 0;        // Daylightsaving / Sommerzeit nicht relevant
+                        set_of_time_gps = mktime(&timeset);
+                        set_of_time_gps = set_of_time_gps;
+                }
 #else
                 set_of_time_gps = akttime;	// Wenn Empfänger nicht aktiv, dann wird die aktuelle Zeit angenommen
                 GPSData.Status = -1;
@@ -189,10 +223,16 @@ int main(void)
                         printf("-----------------------------\n");
                         printf("Aktuelles System: %ld - %s",akttime,ctime(&akttime));
 #ifdef dcf77
-                        printf("Empfangen DCF:    %ld - %s",set_of_time_dcf,ctime(&set_of_time_dcf));
+                        if(dcfstatus > 0)
+                                printf("Empfangen DCF:    %ld - %s",set_of_time_dcf,ctime(&set_of_time_dcf));
+                        else
+                                printf("Empfangen DCF:    nicht gültig\n");
 #endif
 #ifdef gps
-                        printf("Empfangen GPS:    %ld - %s",set_of_time_gps,ctime(&set_of_time_gps));
+                        if(gpsstatus > 0)
+                                printf("Empfangen GPS:    %ld - %s",set_of_time_gps,ctime(&set_of_time_gps));
+                        else
+                                printf("Empfangen GPS:    nicht gültig\n");
 #endif
                 }
 
@@ -204,10 +244,6 @@ int main(void)
                                 PRGabbruch = 0;	// Ende des Programmes wegen Root-Rechte
                         if(funkreturn > 0)
                         {
-                                time(&akttime);
-                                baktime = akttime;
-                                startzeit = akttime - DelaySetTime -1; // Damit die Versögerung nicht noch einmal greift
-                                
                                 // NTP Server starten - nur nach der Zeitsync nötig
                                 if(! ntpstart)
                                 {
