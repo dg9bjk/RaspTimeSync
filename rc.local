@@ -1,0 +1,19 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# Print the IP address
+_IP=$(hostname -I) || true
+if [ "$_IP" ]; then
+  printf "My IP address is %s\n" "$_IP"
+fi
+
+if [ -x /bin/firewall.sh ]; then
+	/bin/firewall.sh
+fi
+
+/bin/ln -s /dev/ttyAMA0 /dev/refclock-0
+/bin/ln -s /dev/ttyUSB0 /dev/gps0
+/usr/sbin/service ntp start
+
+exit 0
