@@ -12,8 +12,14 @@ if [ -x /bin/firewall.sh ]; then
 	/bin/firewall.sh
 fi
 
-/bin/ln -s /dev/ttyAMA0 /dev/refclock-0
-/bin/ln -s /dev/ttyUSB0 /dev/gps0
+#/sbin/modprobe mbgclock
+#/usr/sbin/mbgsvcd
+/bin/ln -s /dev/ttyAMA0 /dev/refclock-1
+#/bin/ln -s /dev/ttyUSB0 /dev/gps0
+#/bin/sleep 90
+#/usr/sbin/mbgsetsystime
 /usr/sbin/service ntp start
 
 exit 0
+
+
